@@ -1,0 +1,54 @@
+\ProvidesPackage{thupagescan}[2014/06/20 \space v 0.1]
+
+\RequirePackage{xkeyval}
+\RequirePackage{pdfpages}
+
+\newif\ifscan@final
+\scan@finalfalse
+
+\define@boolkey{thupagescan}{final}[true]{
+    \ifKV@thupagescan@final \scan@finaltrue \else \scan@finalfalse \fi
+}
+\define@key{thupagescan}{path}[]{\def\scan@path{#1}}
+\define@key{thupagescan}{authpage}{\def\scan@authpage{#1}}
+\define@key{thupagescan}{declpage}{\def\scan@declpage{#1}}
+\define@key{thupagescan}{formfront}{\def\scan@formfront{#1}}
+\define@key{thupagescan}{formback}{\def\scan@formback{#1}}
+\ProcessOptionsX<thupagescan>\relax
+
+\def\scan@filepath#1{\scan@path/#1}
+
+\newcommand{\thu@formtitle}{综合论文训练记录表}
+
+\ifscan@final
+    % authorization page
+    \let\original@titlepage\titlepage
+    \def\titlepage{% hack to suppress blank page
+        \def\list{
+            \def\item[####1]{}
+        }
+        \def\endlist{}
+        \original@titlepage
+    }
+    \renewcommand{\thu@authorization@mk}{\includepdf{\scan@filepath{\scan@authpage}}}
+
+    % declaration page
+    \let\original@endack\endack
+    \def\endack{
+        \def\chapter*##1{}% hack to suppress title
+        \ifthu@postdoctor\relax\else%
+            \thu@chapter*{\thu@declarename}
+            \includepdf{\scan@filepath{\scan@declpage}}
+        \fi
+    }
+
+    % form pages
+    \AtEndDocument{
+        \ifthu@bachelor%
+            \pdfbookmark[0]{\thu@formtitle}{bachelorform}
+            \includepdf{\scan@filepath{\scan@formfront}}
+            \includepdf{\scan@filepath{\scan@formback}}
+        \else\relax
+        \fi
+    }
+\fi
